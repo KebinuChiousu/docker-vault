@@ -1,12 +1,12 @@
 FROM alpine:3.8
 
 # This is the release of Vault to pull in.
-ENV VAULT_VERSION=0.11.0-beta1
+ENV VAULT_VERSION=0.10.4
 
 # Create a vault user and group first so the IDs get set the same way,
 # even as the rest of this may change over time.
-RUN addgroup vault && \
-    adduser -S -G vault vault
+RUN addgroup -g 25000 vault && \
+    adduser -u 25000 -S -G vault vault
 
 # Set up certificates, our base tools, and Vault.
 RUN set -eux; \
@@ -53,7 +53,9 @@ RUN set -eux; \
 RUN mkdir -p /vault/logs && \
     mkdir -p /vault/file && \
     mkdir -p /vault/config && \
-    chown -R vault:vault /vault
+    chown -R vault:vault /vault 
+
+COPY config/default.json /vault/config/
 
 # Expose the logs directory as a volume since there's potentially long-running
 # state in there
@@ -77,4 +79,5 @@ ENTRYPOINT ["docker-entrypoint.sh"]
 
 # By default you'll get a single-node development server that stores everything
 # in RAM and bootstraps itself. Don't use this configuration for production.
-CMD ["server", "-dev"]
+CMD ["server"]
+
