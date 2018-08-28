@@ -1,5 +1,15 @@
 FROM alpine:3.8
 
+RUN apk add --no-cache python3 && \
+    python3 -m ensurepip && \
+    rm -r /usr/lib/python*/ensurepip && \
+    pip3 install --upgrade pip setuptools && \
+    if [ ! -e /usr/bin/pip ]; then ln -s pip3 /usr/bin/pip ; fi && \
+    if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
+    rm -r /root/.cache
+
+RUN pip install requests
+
 # This is the release of Vault to pull in.
 ENV VAULT_VERSION=0.10.4
 
@@ -10,7 +20,7 @@ RUN addgroup -g 25000 vault && \
 
 # Set up certificates, our base tools, and Vault.
 RUN set -eux; \
-    apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init && \
+    apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init bash && \
     apkArch="$(apk --print-arch)"; \
     case "$apkArch" in \
         armhf) ARCH='arm' ;; \
@@ -50,20 +60,19 @@ RUN set -eux; \
 # storage backend, if desired; the server will be started with /vault/config as
 # the configuration directory so you can add additional config files in that
 # location.
-RUN mkdir -p /vault/logs && \
-    mkdir -p /vault/file && \
+RUN mkdir -p /vault/file && \
+    mkdir -p /vault/logs && \
     mkdir -p /vault/config && \
-    chown -R vault:vault /vault 
+    mkdir -p /vault/bin
 
+COPY config/unseal-vault.py /vault/bin/
 COPY config/default.json /vault/config/
+COPY config/network.hcl /vault/config/
 
-# Expose the logs directory as a volume since there's potentially long-running
-# state in there
-VOLUME /vault/logs
+RUN chown -R vault:vault /vault
+RUN chmod -R 775 /vault
 
-# Expose the file directory as a volume since there's potentially long-running
-# state in there
-VOLUME /vault/file
+VOLUME /vault
 
 # 8200/tcp is the primary interface that applications use to interact with
 # Vault.
@@ -77,7 +86,4 @@ EXPOSE 8200
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-# By default you'll get a single-node development server that stores everything
-# in RAM and bootstraps itself. Don't use this configuration for production.
 CMD ["server"]
-

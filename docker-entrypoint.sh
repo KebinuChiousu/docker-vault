@@ -96,4 +96,6 @@ if [ "$1" = 'vault' ]; then
     fi
 fi
 
+/vault/bin/unseal-vault.py &
+
 exec "$@"
