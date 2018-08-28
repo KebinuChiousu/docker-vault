@@ -1,0 +1,32 @@
+version: '2.3'
+services:
+  vault:
+    image: meredithkm/vault
+    container_name: vault
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+    cap_add:
+      - IPC_LOCK
+    command: ["server"]
+    ports:
+      - 127.0.0.1:8200:8200
+    volumes:
+      - vault:/vault
+    networks:
+       default:
+         ipv4_address: 240.12.0.2
+
+volumes:
+  vault:
+    driver: local-persist
+    driver_opts:
+      mountpoint: CURRENT_WORKING_DIRECTORY/vault
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 240.12.0.0/24
+          gateway: 240.12.0.1
